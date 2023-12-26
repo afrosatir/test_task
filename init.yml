@@ -1,0 +1,49 @@
+---
+- name: Инициализация базы данных PostgreSQL
+  hosts: all
+  become: true
+  vars:
+    become_ask_pass: true
+
+  tasks:
+    - name: Установка Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+      become: yes
+
+    - name: Установка PostgreSQL клиента
+      apt:
+        name: postgresql-client
+        state: present
+      become: true
+
+    - name: Загрузка последнего образа PostgreSQL для Docker
+      docker_image:
+        name: postgres:latest
+        source: pull
+      become: yes
+
+    - name: Создание директории для данных PostgreSQL
+      file:
+        path: /srv/docker/postgres
+        state: directory
+      become: yes
+
+    - name: Запуск контейнера PostgreSQL
+      command: docker run -d --name postgres_container -p 5432:5432 -e POSTGRES_DB=dbname -e POSTGRES_USER=master -e POSTGRES_PASSWORD=secret -v /srv/docker/postgres:/var/lib/postgresql/data postgres:latest
+      become: yes
+
+    - name: Ожидание готовности PostgreSQL
+      wait_for:
+        host: "127.0.0.1"
+        port: 5432
+        timeout: 60
+
+    - name: Создание таблицы 'users'
+      command: docker exec -i postgres_container psql -U master dbname -c "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));"
+      become: yes
+
+    - name: Добавление трех произвольных пользователей
+      command: docker exec -i postgres_container psql -U master dbname -c "INSERT INTO users (name, email) VALUES ('Пользователь1', 'user1@example.com'), ('Пользователь2', 'user2@example.com'), ('Пользователь3', 'user3@example.com');"
+      become: yes

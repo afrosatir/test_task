@@ -1,0 +1,7 @@
+all:
+  hosts:
+    192.168.0.111:
+      ansible_user: step
+      ansible_ssh_private_key_file: /home/step/.ssh/id_rsa
+
+

@@ -1,0 +1,25 @@
+---
+- name: Создание резервной копии базы данных
+  hosts: all
+  become: yes
+  vars:
+    pg_db_name: dbname
+    pg_user: master
+    pg_password: secret
+    backup_dir: /home/master/backup
+
+  tasks:
+    - name: Создание каталога для резервных копий
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+
+    - name: Выполнение резервного копирования базы данных с использованием Docker
+      shell: >
+        docker exec -i postgres_container pg_dump -U {{ pg_user }}
+        -h localhost
+        -d {{ pg_db_name }}
+        -F c
+        -w > "{{ backup_dir }}/backup_{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}.dump"
+      environment:
+        PGPASSWORD: "{{ pg_password }}"
